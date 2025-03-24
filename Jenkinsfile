@@ -9,14 +9,14 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/jstestingacademy/SerenityApi.git'  // Replace with your repo
+                git branch: 'main', url: 'https://github.com/jstestingacademy/SerenityApi.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build --no-cache -t $IMAGE_NAME .'
+                    sh "docker build --no-cache -t ${env.IMAGE_NAME} ."
                 }
             }
         }
@@ -24,7 +24,9 @@ pipeline {
         stage('Run Tests in Docker') {
             steps {
                 script {
-                    sh 'docker run --name $CONTAINER_NAME $IMAGE_NAME || true'
+                    sh """
+                        docker run --rm --name ${env.CONTAINER_NAME} ${env.IMAGE_NAME}
+                    """
                 }
             }
         }
@@ -32,7 +34,9 @@ pipeline {
         stage('Copy Serenity Reports') {
             steps {
                 script {
-                    sh 'docker cp $CONTAINER_NAME:/app/target/serenity-reports ./serenity-reports || true'
+                    sh """
+                        docker cp ${env.CONTAINER_NAME}:/app/target/serenity-reports ./serenity-reports || echo "No reports found"
+                    """
                 }
             }
         }
@@ -46,8 +50,11 @@ pipeline {
         stage('Clean Up') {
             steps {
                 script {
-                    sh 'docker rm -f $CONTAINER_NAME || true'
-                    sh 'docker rmi -f $IMAGE_NAME || true'
+                    sh """
+                        docker rm -f ${env.CONTAINER_NAME} || true
+                        docker rmi -f ${env.IMAGE_NAME} || true
+                        docker system prune -f || true
+                    """
                 }
             }
         }
@@ -56,15 +63,17 @@ pipeline {
     post {
         always {
             script {
-                sh 'docker rm -f $CONTAINER_NAME || true'
-                sh 'docker rmi -f $IMAGE_NAME || true'
+                sh """
+                    docker rm -f ${env.CONTAINER_NAME} || true
+                    docker rmi -f ${env.IMAGE_NAME} || true
+                """
             }
         }
         success {
-            echo "Tests executed successfully!"
+            echo "✅ Tests executed successfully!"
         }
         failure {
-            echo "Tests failed. Check logs for details."
+            echo "❌ Tests failed. Check logs for details."
         }
     }
 }
