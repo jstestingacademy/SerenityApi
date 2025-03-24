@@ -1,0 +1,15 @@
+
+services:
+  serenity-api-tests:  # This must match the service name correctly
+    build: .
+    container_name: serenity-rest-assured
+    ports:
+      - "8080:80"
+    depends_on:
+      - selenium-hub
+
+  selenium-hub:
+    image: selenium/hub:4.7.2
+    container_name: selenium-hub
+    ports:
+      - "4444:4444"
